@@ -30,10 +30,15 @@ Every meter of total waterway length in the Sandy River Basin - including all tr
 ```{r}
 #Descritpion of Hypothetical Population: 
 
+set.seed(6)
 population <- declare_population(
-  stream_meters = add_level(N= 165000, 
-     tot_nut=rnorm(n=N, mean= 10, sd= 15)) 
-)
+  stream_meters = add_level(N = 165000,
+                            accessible = c(rep(0,55000), rep(1, 110000)), 
+  tot_nut = if_else(accessible == 1, rnorm(1, mean= 7, sd= 15), rnorm(1, mean= 3, sd = 4))
+))
+
+#0 = location not easily accessible from a road, 1 = location easily accessible from a road
+
 #mean and sd in mg/L, tot_nut is total nutrient concentration taking into account                                               nitrogen and phosophorus
 
 pop <- population()
@@ -43,8 +48,10 @@ pop <- pop %>%
 #It is possible to get negative results of nutrient concentrations back from lab analysis, but negative nutrient concentrations do not actually exist. The above code assumes that any negative concentrations are an instrument error since the concentration in the sample was below the minimum detection limit of the instrument - and therefore are actually 0 mg/L concentrations.
 
 #New mean and sd of pop: 
-#mean = 12.24
-#sd = 11.85
+mean(pop$tot_nut)
+sd(pop$tot_nut)
+#mean = 12.25
+#sd = 11.86
 
 plot <- ggplot(pop, aes(x=tot_nut)) + 
   geom_histogram(color="black", fill="white")
@@ -65,6 +72,9 @@ Ease of access will bias site selection towards locations with surround land-use
 
 ```{r}
 #Description of reporting probabilities:
+
+
+
 
 ```
 
