@@ -25,10 +25,32 @@ library(kableExtra)
 Nitrogen and phosphorus concentrations in water samples collected at established sites
 
 ##Target Population: 
-Water in all rivers and tributaries within the Sandy River Basin
+Every meter of total waterway length in the Sandy River Basin - including all tributataries to the Sandy River. Estimated to be 165,000 meters. 
 
 ```{r}
 #Descritpion of Hypothetical Population: 
+
+population <- declare_population(
+  stream_meters = add_level(N= 165000, 
+     tot_nut=rnorm(n=N, mean= 10, sd= 15)) 
+)
+#mean and sd in mg/L, tot_nut is total nutrient concentration taking into account                                               nitrogen and phosophorus
+
+pop <- population()
+
+pop <- pop %>%
+  mutate(tot_nut = if_else(tot_nut < 0, 0, tot_nut)) 
+#It is possible to get negative results of nutrient concentrations back from lab analysis, but negative nutrient concentrations do not actually exist. The above code assumes that any negative concentrations are an instrument error since the concentration in the sample was below the minimum detection limit of the instrument - and therefore are actually 0 mg/L concentrations.
+
+#New mean and sd of pop: 
+#mean = 12.24
+#sd = 11.85
+
+plot <- ggplot(pop, aes(x=tot_nut)) + 
+  geom_histogram(color="black", fill="white")
+
+plot
+
 
 ```
 
