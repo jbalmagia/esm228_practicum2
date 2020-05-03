@@ -1,0 +1,55 @@
+---
+title: "Practicum 2"
+author: "Jenny Balmagia"
+date: "May 3, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load the required packages
+library(DeclareDesign)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(dplyr)
+library(kableExtra)
+```
+
+##Measure:
+Nitrogen and phosphorus concentrations in water samples collected at established sites
+
+##Target Population: 
+Water in all rivers and tributaries within the Sandy River Basin
+
+```{r}
+#Descritpion of Hypothetical Population: 
+
+```
+
+
+##Challenges to drawing a representative sample: 
+There is a lot of heterogeneity in land use, stream volume, and stream velocity within the Sandy River Basin - and these all affect the concentration of nitrogen and phosphorus concentrations in the water. A representative sample of this measurement would include water collected from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. This is not possible since sampling all of those hypotehtical sites would not be time efficient, gaining access from private landowners might not be feasible, and analyzing a large number of water samples in the lab would be cost prohibitive. Site selection will be biased towards: 
+
+- locations easily accessible from a road
+- locations accessible without needing to cross over private land (no landowner permission needed). Meaning locations accessible from publicly owned land in the form of conserved land, or public right-of-way.
+
+Ease of access will bias site selection towards locations with surround land-use types more likely to introduce nitrogen and phosphorus into the stream - such as near agriculture and rangeland. Areas surrounded by pristine forest (less likely to introduce excess nutrients) will be harder to access and therefore under-represented. 
+
+```{r}
+#Description of reporting probabilities:
+
+```
+
+
+##Sampling Procedure: 
+
+```{r}
+#Description of sampling procedure: 
+```
+
