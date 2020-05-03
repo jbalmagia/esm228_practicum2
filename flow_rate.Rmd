@@ -1,0 +1,103 @@
+---
+title: "flow_rate"
+author: "Erin Ristig"
+date: "5/3/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+# Load the required packages
+library(DeclareDesign)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(dplyr)
+library(kableExtra)
+```
+
+Goal: Determine if creation of log jams slows down the river flow/by what percentage
+Exact measure: River flow rate
+Unit of measurement: Feet/second
+Source of data: Measurements collected by staff/volunteers
+Rationale for choice of measure: To test the assumption that log jams decreases flow rate
+Responsibility for data collection: Staff/volunteers
+Frequency of data collection: River flow rate measurements to be collected at 20 spots along the river over a six-month period, once per month prior to log jam creation. Post log jam creation river flow rate measurements to be collected at same 20 spots on the same days of the year as the previous testing period.
+
+## Measurement Goal & Measure
+
+**Goal**: Test to what degree log jams slow down river flow rate.
+
+*Measure*: Flow rate in feet/second.
+
+## Source & Rationale & Unit
+
+*Source*: Staff will collect river flow rate measurements at 20 spots along the river.
+
+*Rationale*: Log jams should be decreasing flow rate downstream. So by comparing flow rate at a given sight with the number of log jams upstream from that sight we can determine if an increased number of log jams decreases the flow rate.
+
+*Unit*: 
+
+
+## Responsibility & Frequency
+
+*Responsibility*: Staff will be in charge of collecting the flow rate measurements. 
+
+*Frequency*: Weekly over the two month spawning period; annually.
+
+
+## Declaring the population
+
+Every meter of waterway length in the Sandy River Basin.
+
+
+## Target Population & Challenges
+
+*Target Population*: Flow rate along all 165,000 meters of waterway in the Sandy River Basin.
+
+*Challenge of drawing a representative sample*: 
+Given limited staff capacity, flow rate measurements are limited in terms of number of sites and frequency. Given that seasonality (ie snow melt increasing overall flow rate) has a strong natural impact on flow rate it is important to take measurements at the same time each year so the average over the years will balance out effects of year to year seasonal differences. All 165,000 meters cannot be measured so measurements will need to be taken at evenly spaced sights along the length of the river.
+
+*Sampling procedure*: Over the two month period when spawning salmon and steelhead are most prevalent staff will measure flow rate at 20 designated sights along the river (every 8,250 meters), weekly, for a total of 8 annual measurements. This will be done on an annual basis, including the year before any log jams are created. These measurements will be compared with the number of log jams upstream from each measurement sight.
+
+## Hypothetical Population
+
+```{r pop}
+# Hypothetical population
+set.seed(228)
+
+# Create a population of 20 sites
+
+population <- declare_population(
+  sites = add_level(N=20,
+                       donor = sample(c(rep(0,2),rep(1,8))),
+     satisfied=correlate(given = donor, rho = 0.9,
+                         draw_binary, prob = 0.5)
+))
+
+```
+
+## Reporting probabilities
+
+```{r diff-reporting, echo=FALSE}
+# Reporting probabilities
+
+```
+
+```{r resp-tab, echo=FALSE}
+# table(pop$rate,pop$jam)
+```
+
+## Sampling Procedure
+
+```{r diagnosis, cache=TRUE}
+# Sampling procedure
+
+```
+
+
+
