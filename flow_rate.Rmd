@@ -35,7 +35,7 @@ Every meter of total waterway length in the Sandy River Basin - including all tr
 set.seed(6)
 population <- declare_population(
   stream_meters = add_level(N = 165000, # total number of meters
-                            accessible = c(rep(0,95000), rep(1, 70000)), # 0 is location isn't easily accessible from road (roughly a third); 1 is easily accessible (other two thirds)
+                            accessible = c(rep(0,85000), rep(1, 80000)), # 0 is location isn't easily accessible from road (roughly a third); 1 is easily accessible (other two thirds)
   flow_rate = if_else(accessible == 1, rnorm(n = 165000, mean = 200, sd = 120), rnorm(n = 165000, mean= 600, sd = 150))
 )) # associated flow; if accesible by road will likely be in an area with less steep terrain - this means the flow rate will likely be lower in these areas as there will be less elevation change. 
 
@@ -60,16 +60,19 @@ plot
 ##Challenges of drawing a representative sample: 
 Given limited staff capacity, flow rate measurements are limited in terms of number of sites and frequency. Stream volume, natural obstacles (ie eddies), human caused obstacles (ie log jams), elevation change, etc. all vary greatly throughout the Sandy River Basin. A representative sample of this measurement would include flow rate measurements from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. Given that not all sites along the river are accessible and time and budget are limited it is not feasible to measure flow rate along the entirety of the river. Site selection will be biased towards locations easily accesible from a road. Areas of the river with steeper terrain are likely to be less accesible as there will be fewer roads. Steep terrain areas are difficult to construct roads on and tend to be generally less developed. The flow rate of the river in areas of steep terrain is likely to be faster as the elevation change is more dramatic causing waterfalls, cascades, etc. This means that steeper areas of the basin, with faster flow rates will be harder to access and therefore under-represented.
 
+This is addressed in the code in the stratification and the weighting of the stratification. Explanation from Jenny in slack
+Not including reporting because every sight we're going to will have water
+
 ##Reporting probabilities
 
 ```{r diff-reporting, echo=FALSE}
 # Reporting probabilities
 
-reporting <- declare_assignment(blocks=accessible,
-                                assignment_variable = "R", #site sampled
-                                block_prob=c(0.1,0.6)) 
+#reporting <- declare_assignment(blocks=accessible,
+                              #  assignment_variable = "R", #site sampled
+                               # block_prob=c(0.1,0.6)) 
 
-pop <- reporting(pop)
+#pop <- reporting(pop)
 
 ```
 
@@ -80,7 +83,7 @@ With two types of sites - those easily accessible from a road, and those not eas
 # Sampling procedure
 
 sampling <- declare_sampling(strata = accessible,
-                             strata_n = c(5,15))
+                             strata_n = c(9,11))
 
 strata_weighted_mean <- function(data){
   data.frame( 
@@ -89,10 +92,10 @@ strata_weighted_mean <- function(data){
   n = nrow(data),
   stringsAsFactors = FALSE,
  
-  estimate = data %>% filter(R==1) %>%
+  estimate = data %>% 
    group_by(accessible) %>% 
   summarise(mean=mean(flow_rate)) %>%
-  mutate(prop=c(0.5758,0.4242)) %>%
+  mutate(prop=c(0.5152,0.4848)) %>%
   mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>% 
   sum())
 } 

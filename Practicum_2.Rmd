@@ -29,26 +29,6 @@ library(kableExtra)
 
 ##### Measure 1
 
-*Measurement goal:* Test effectiveness of guided site visits in increasing program awareness and making good impressions on visitors
-
-*Exact Measure:* Please rate your experience today with X guide on the following (Likert) scale:
-
-Very dissatisfied, (Somewhat) Dissatisfied, Neutral, (Somewhat) Satisfied, Very Satisfied
-
-*Unit of measurement:* Individual survey response
-
-*Source of data:* Each visitor will be asked to complete the survey following the guided site visit.
-
-*Rationale for choice of measure:* The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The assumption we are testing is whether site visits truly increase visitor knowledge and leave guests with a positive impression. This measure of visit satisfaction will later be correlated with actual future engagement.
-
-*Responsibility for data collection:* Staff member (possibly administrator?) other than the tour guide should administer this partially anonymous survey. Guests should not feel uncomfortable providing honest feedback, but it will be helpful to include some identifying information that will allow other measures to be correlated with tour satisfaction.
-
-*Frequency of data collection:* Every individual should be asked to take the survey. If 20 tours are led throughout the year, 10 individuals are on each tour, and 9/10 of individuals agree to take the survey, this will result in 180 responses each year.
-
-<br>
-
-##### Measure 2
-
 *Measurement goal:* Determine if incremental physical progress reveals progress towards program goals.
 
 *Exact Measure:* Functional linear feet of riparian habitat receiving program attention
@@ -65,7 +45,7 @@ Very dissatisfied, (Somewhat) Dissatisfied, Neutral, (Somewhat) Satisfied, Very 
 
 <br>
 
-##### Measure 3
+##### Measure 2
 
 *Measurement goal:* Test effectiveness of guided site visits in increasing program awareness and making good impressions on visitors.
 
@@ -89,7 +69,7 @@ e. Very Dissatisfied
 
 <br>
 
-#### Sampling Strategy for Measure 3
+#### Sampling Strategy for Measure 2
 
 ##### Description of the target population
 
@@ -194,7 +174,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 4
+##### Measure 3
 
 *Measurement goal:* Determine if installing fencing along the river and planting native vegetation reduces stream bank erosion.
 
@@ -212,7 +192,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 5
+##### Measure 4
 
 *Measurement goal:* Determine if fencing installation is effective at keeping cows out of the stream. 
 
@@ -230,7 +210,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 6
+##### Measure 5
 
 *Measurement goal:* Determine if installing fencing along the river reduces in-stream nutrient concentrations.
 
@@ -248,7 +228,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-#### Sampling Strategy for Measure 6
+#### Sampling Strategy for Measure 5
 
 ##### Description of the target population
 
@@ -343,7 +323,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 7
+##### Measure 6
 
 *Measurement goal:* Determine if log jams cool down the river temperature.
 
@@ -361,7 +341,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 8
+##### Measure 7
 
 *Measurement goal:* Determine if there any changes in steelhead and salmon populations in the Sandy River over time. 
 
@@ -379,7 +359,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-##### Measure 9
+##### Measure 8
 
 *Measurement goal:* Determine if log jams slow down flow rate of the river.
 
@@ -397,7 +377,7 @@ diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
 
 <br>
 
-#### Sampling Strategy for Measure 9
+#### Sampling Strategy for Measure 8
 
 ##### Description of the target population
 
