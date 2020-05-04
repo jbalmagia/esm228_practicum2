@@ -1,0 +1,75 @@
+---
+title: "Practicum_2"
+author: "Minnie Ringland, Jenny Balmagia, Erin Ristig"
+date: "5/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Theory of Change: De-list endangered salmon and steelhead of the Lower Columbia River Basin
+
+#### Measures related to community engagement and funding:
+
+<br>
+
+##### Measure 1
+
+*Measurement goal:* Test effectiveness of guided site visits in increasing program awareness and making good impressions on visitors
+
+*Exact Measure:* Please rate your experience today with X guide on the following (Likert) scale:
+
+Very dissatisfied, (Somewhat) Dissatisfied, Neutral, (Somewhat) Satisfied, Very Satisfied
+
+*Unit of measurement:* Individual survey response
+
+*Source of data:* Each visitor will be asked to complete the survey following the guided site visit.
+
+*Rationale for choice of measure:* The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The assumption we are testing is whether site visits truly increase visitor knowledge and leave guests with a positive impression. This measure of visit satisfaction will later be correlated with actual future engagement.
+
+*Responsibility for data collection:* Staff member (possibly administrator?) other than the tour guide should administer this partially anonymous survey. Guests should not feel uncomfortable providing honest feedback, but it will be helpful to include some identifying information that will allow other measures to be correlated with tour satisfaction.
+
+*Frequency of data collection:* Every individual should be asked to take the survey. If 20 tours are led throughout the year, 10 individuals are on each tour, and 9/10 of individuals agree to take the survey, this will result in 180 responses each year.
+
+<br>
+
+##### Measure 2
+
+*Measurement goal:* Determine if incremental physical progress reveals progress towards program goals.
+
+*Exact Measure:* Functional linear feet of riparian habitat receiving program attention
+
+*Unit of measurement:* Linear feet (=The length of stream channel that is restored or enhanced to regain natural or historic function and support species that rely on that habitat)
+
+*Source of data:* As program workers conduct restoration activities, they should record the length of river that is directly affected by those activities.
+
+*Rationale for choice of measure:* The fish species of concern might require the entire length of the river to be improved to exhibit any boost in population. It might be difficult to retain funding if there are no signs of success until the entire project is completed. Correlating incremental physical progress with incremental improvements in the fish species could assure program managers and donors of success.
+
+*Responsibility for data collection:* Staff/volunteers conducting restoration activities (logjams, planting, fencing)
+
+*Frequency of data collection:* Data should be recorded as restoration activities take place.
+
+<br>
+
+##### Measure 3
+
+*Measurement goal:* Test effectiveness of guided site visits in securing donations or partnerships
+
+*Exact Measure:* % of site visits attended by members of organizations that donate to or partner with the Freshwater Trust in that year
+
+*Unit of measurement:* Organization represented by each individual on a site visit
+
+*Source of data:* List of visitors, list of donors, list of collaborators for each year
+
+*Rationale for choice of measure:* The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The hypothesis we are testing is whether site visits eventually lead to donations or collaboration. We can improve the specificity of this measure by incorporating visit satisfaction - does satisfaction correlate with the likelihood of a donation, or do organizations who have already decided to donate/collaborate simply send visitors as a sign of commitment? We can also incorporate the size of the donation or level of involvement to test whether more visits or high satisfaction increase engagement.
+
+*Responsibility for data collection:* Data should be collected automatically as part of program management (i.e. visitors should be asked to note their affiliation). Financial manager can take responsibility for collation and analysis.
+
+*Frequency of data collection:* Data should be collected automatically for each individual, on each visit, as frequently as site visits occur.
+
+##### Sampling Strategy for Measure 3
+
+
+
