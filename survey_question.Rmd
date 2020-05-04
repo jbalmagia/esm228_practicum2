@@ -59,8 +59,8 @@ Administrative data shows that 20 tours are led throughout the year, with 10 ind
 
 Organizations       Visitors               Surveys Completed
 -----------        ------------------      ------------------
-Will Donate              150                      100%
-Will Not Donate          50                       50%
+Will Donate              160                      100%
+Will Not Donate          40                       50%
 
 
 ## Target Population & Challenges
@@ -71,77 +71,77 @@ Will Not Donate          50                       50%
 
 *Sampling procedure*: Request every visitor complete the survey at the end of their site visit.
 
-## DeclareDesign()
+## Declare Population
 
 ```{r population}
 set.seed(228)
 
-#Minnie: Create a population of 200 visitors, of which 75% will end up donating. Then use whether or not visitors are donors to determine their level of satisfaction. This means that visitors' donor status is directly correlated to whether or not they were satisfied with the tour (the assumption we are testing).
+#Minnie: Create a population of 200 visitors, of which 80% will end up donating. Then use whether or not visitors are donors to determine their level of satisfaction. This means that visitors' donor status is directly correlated to whether or not they were satisfied with the tour (the assumption we are testing).
 
 population <- declare_population(
-  visitors = add_level(N=200,
-                       donor = sample(c(rep(0,50),rep(1,150))),
-     satisfied=correlate(given = donor, rho = 0.8,
-                         draw_binary, prob = 0.5)
-))
+  visitors = add_level(N=200, donor = sample(c(rep(0,40),rep(1,160))),
+                       satisfied=correlate(given = donor, rho = 0.8, draw_binary, prob = 0.5)))
 
-#Minnie: To make satisfaction a binary condition, a response of "neutral" or more negative is considered "dissatisfied" and both "satisfied" and "very satisfied" are considered "satisfied".
+#Minnie: To make satisfaction a binary condition, a survey response of "neutral" or more negative is considered "dissatisfied" and both "somewhat satisfied" and "very satisfied" are considered "satisfied".
 #Minnie:rho = 0.8 --> donor status highly correlated with being satisfied
 
 pop <- population()
+pop.vector <- c(40,160)
 
 kable(table(pop$donor,pop$satisfied)) %>% 
   add_header_above(c("donor"=1,"satisfied"=2))
 
 my_estimand <- declare_estimands(mean(pop$satisfied),
                                  label = "Ybar")
-#Minnie: Estimand is the mean level of knowledge among the sample.
+#Minnie: Estimand is the mean level of satisfaction among the population
+#my_estimand(pop)
+
 ```
 
-## Declaring response bias
+## Declare Response Bias
 
-```{r reporting, echo=FALSE}
+```{r reporting and sampling, echo=FALSE}
 
 reporting <- declare_assignment(blocks=donor,
                   assignment_variable = "A", 
                   block_prob=c(0.5,1.0))
 
-#Minnie: Donors will all complete the survey, half of non-donors will refuse to complete it --> donors are more likely to  be "reporters"
+#Minnie: Donors will all complete the survey, while half of non-donors will refuse to complete it --> donors are more likely to "Answer"
 
-#Minnie: no stratification in this example?
+rep <- reporting(pop)
+table(rep$donor,rep$A)
 
-pop <- reporting(pop)
-table(pop$donor,pop$A)
-
-sampling <- declare_sampling(n=10)
 
 ```
 
-```{r sampling}
-sims <- 1000 #simulations
-sam.n <- 10 #attempted sample size
 
-store <- rep(NA, sims)
-for (i in 1:sims){
-  store[i] <- mean(pop[sample(1:200,sam.n),] %>%
-                     filter(A==1) %>%
-                     pull(satisfied))
+## Declare Sampling
+
+```{r sampling and diagnosis, cache=TRUE}
+
+sampling <- declare_sampling(strata=donor,
+                             strata_n = c(9,1)) #Minnie: this appears to be the lowest possible sampling number/distribution but the bias is reduced by weighting towards non-donor surveys
+samp <- sampling(rep)
+
+strata_weighted_mean <- function(data){
+  data.frame(  
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+  
+  estimate = data %>% filter(A==1) %>%
+    group_by(donor) %>%
+    summarise(estimate=mean(satisfied)) %>%
+    mutate(prop=c(0.2,0.8)) %>%
+    mutate(sub.mean=estimate*prop) %>% pull(sub.mean) %>%
+    sum())
 }
-#PH: in this for-loop, we're taking a random sample of visitors, subsetting out those that are "non-reporters" (A==0) and then taking the mean of their satisfaction. We do this "sims" number of times (1000).
 
-summary(store)
-```
+answer <- declare_estimator(
+  handler = tidy_estimator(strata_weighted_mean), estimand = my_estimand)
 
-
-## DeclareDesign()
-
-```{r diagnosis, cache=TRUE}
-
-#answer <- declare_estimator(
- # handler = tidy_estimator(strata_weighted_mean), #PH: this is the custom function we wrote in the chunk above.
-  #estimand = my_estimand) #PH: 'my_estimand' is the true population mean of knowledge. We happen to know this in this case (b/c we faked the data), but you'll have to make an educated guess about what this is in practice. Often, you see people designing M&E programs cite research to take a stab at the actual value of the estimand.
-
-design <- population + reporting + sampling + my_estimand
+design <- population + reporting + sampling + my_estimand + answer
 diagnosis <- diagnose_design(design, sims = 1000)
 
 diagnosis$diagnosands_df[,c(4,5,12,14)] %>%

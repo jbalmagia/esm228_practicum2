@@ -21,77 +21,34 @@ library(tidyverse)
 library(kableExtra)
 ```
 
-Goal: Determine if creation of log jams slows down the river flow/by what percentage
-Exact measure: River flow rate
-Unit of measurement: Feet/second
-Source of data: Measurements collected by staff/volunteers
-Rationale for choice of measure: To test the assumption that log jams decreases flow rate
-Responsibility for data collection: Staff/volunteers
-Frequency of data collection: River flow rate measurements to be collected at 20 spots along the river over a six-month period, once per month prior to log jam creation. Post log jam creation river flow rate measurements to be collected at same 20 spots on the same days of the year as the previous testing period.
+##Measure:
+Flow rate (meters/second) measurements collected at established sites
 
-## Measurement Goal & Measure
-
-**Goal**: Test to what degree log jams slow down river flow rate.
-
-*Measure*: Flow rate in feet/second.
-
-## Source & Rationale & Unit
-
-*Source*: Staff will collect river flow rate measurements at 20 spots along the river.
-
-*Rationale*: Log jams should be decreasing flow rate downstream. So by comparing flow rate at a given sight with the number of log jams upstream from that sight we can determine if an increased number of log jams decreases the flow rate.
-
-*Unit*: 
-
-
-## Responsibility & Frequency
-
-*Responsibility*: Staff will be in charge of collecting the flow rate measurements. 
-
-*Frequency*: Weekly over the two month spawning period; annually.
-
-
-## Declaring the population
-
-Every meter of waterway length in the Sandy River Basin.
-
-
-## Target Population & Challenges
-
-*Target Population*: Flow rate along all 165,000 meters of waterway in the Sandy River Basin.
-
-*Challenge of drawing a representative sample*: 
-Given limited staff capacity, flow rate measurements are limited in terms of number of sites and frequency. Given that seasonality (ie snow melt increasing overall flow rate) has a strong natural impact on flow rate it is important to take measurements at the same time each year so the average over the years will balance out effects of year to year seasonal differences. All 165,000 meters cannot be measured so measurements will need to be taken at evenly spaced sights along the length of the river.
-
-*Sampling procedure*: Over the two month period when spawning salmon and steelhead are most prevalent staff will measure flow rate at 20 designated sights along the river (every 8,250 meters), weekly, for a total of 8 annual measurements. This will be done on an annual basis, including the year before any log jams are created. These measurements will be compared with the number of log jams upstream from each measurement sight.
+##Target Population: 
+Every meter of total waterway length in the Sandy River Basin - including all tributataries to the Sandy River. Estimated to be 165,000 meters. 
 
 ## Hypothetical Population
 
 ```{r pop}
-#Descritpion of Hypothetical Population: 
+#Description of Hypothetical Population: 
 
 set.seed(6)
 population <- declare_population(
   stream_meters = add_level(N = 165000, # total number of meters
-                            accessible = c(rep(0,55000), rep(1, 110000)), # 0 is location isn't easily accessible from road (roughly a third); 1 is easily accessible (other two thirds)
-  flow_rate = if_else(accessible == 1, rnorm(n = 165000, mean= 600, sd = 5), rnorm(n = 165000, mean= 200, sd = 7))
-)) # associated flow; if accesible by road will likely be more downstream along the main tributary of the river and therefore have a faster flow rate.
+                            accessible = c(rep(0,95000), rep(1, 70000)), # 0 is location isn't easily accessible from road (roughly a third); 1 is easily accessible (other two thirds)
+  flow_rate = if_else(accessible == 1, rnorm(n = 165000, mean = 200, sd = 120), rnorm(n = 165000, mean= 600, sd = 150))
+)) # associated flow; if accesible by road will likely be in an area with less steep terrain - this means the flow rate will likely be lower in these areas as there will be less elevation change. 
 
 # 0 = location not easily accessible from a road, 1 = location easily accessible from a road
 
 #mean and sd in meters/second, flow_rate is flow rate at given site along river
 
-pop <- population() # run this function called population
+pop <- population()
 
-pop <- pop %>%
-mutate(flow_rate = if_else(flow_rate < 0, 0, flow_rate)) 
-#It is possible to get negative results of nutrient concentrations back from lab analysis, but negative nutrient concentrations do not actually exist. The above code assumes that any negative concentrations are an instrument error since the concentration in the sample was below the minimum detection limit of the instrument - and therefore are actually 0 mg/L concentrations.
 
-#New mean and sd of pop: 
-mean(pop$flow_rate)
-sd(pop$flow_rate)
-#mean = 12.25
-#sd = 11.86
+
+my_estimand <- declare_estimands(mean(flow_rate),
+                                 label = "Ybar")
 
 plot <- ggplot(pop, aes(x=flow_rate)) + 
   geom_histogram(color="black", fill="white")
@@ -100,22 +57,58 @@ plot
 
 
 ```
+##Challenges of drawing a representative sample: 
+Given limited staff capacity, flow rate measurements are limited in terms of number of sites and frequency. Stream volume, natural obstacles (ie eddies), human caused obstacles (ie log jams), elevation change, etc. all vary greatly throughout the Sandy River Basin. A representative sample of this measurement would include flow rate measurements from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. Given that not all sites along the river are accessible and time and budget are limited it is not feasible to measure flow rate along the entirety of the river. Site selection will be biased towards locations easily accesible from a road. Areas of the river with steeper terrain are likely to be less accesible as there will be fewer roads. Steep terrain areas are difficult to construct roads on and tend to be generally less developed. The flow rate of the river in areas of steep terrain is likely to be faster as the elevation change is more dramatic causing waterfalls, cascades, etc. This means that steeper areas of the basin, with faster flow rates will be harder to access and therefore under-represented.
 
-## Reporting probabilities
+##Reporting probabilities
 
 ```{r diff-reporting, echo=FALSE}
 # Reporting probabilities
 
-```
+reporting <- declare_assignment(blocks=accessible,
+                                assignment_variable = "R", #site sampled
+                                block_prob=c(0.1,0.6)) 
 
-```{r resp-tab, echo=FALSE}
-# table(pop$rate,pop$jam)
+pop <- reporting(pop)
+
 ```
 
 ## Sampling Procedure
+With two types of sites - those easily accessible from a road, and those not easily accessible - it makes the most sense to use a disproportionate strata sampling procedure. It isn't feasible to sample the less accessible sites more intensively (hence a bias in the first place), but using the strata_weighted_mean() function we can weight the strata means proportionately to the strata size of the population. 
 
 ```{r diagnosis, cache=TRUE}
 # Sampling procedure
+
+sampling <- declare_sampling(strata = accessible,
+                             strata_n = c(5,15))
+
+strata_weighted_mean <- function(data){
+  data.frame( 
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+ 
+  estimate = data %>% filter(R==1) %>%
+   group_by(accessible) %>% 
+  summarise(mean=mean(flow_rate)) %>%
+  mutate(prop=c(0.5758,0.4242)) %>%
+  mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>% 
+  sum())
+} 
+
+
+
+answer <- declare_estimator(
+ handler = tidy_estimator(strata_weighted_mean),
+ estimand = my_estimand)
+
+design <- population + my_estimand + reporting + sampling + answer
+
+diagnosis <- diagnose_design(design, sims = 200)
+
+diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
+ kable()
 
 ```
 
