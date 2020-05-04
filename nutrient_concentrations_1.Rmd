@@ -1,0 +1,112 @@
+---
+title: "Practicum 2"
+author: "Jenny Balmagia"
+date: "May 3, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load the required packages
+library(DeclareDesign)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(dplyr)
+library(kableExtra)
+```
+
+##Measure:
+Nitrogen and phosphorus concentrations in water samples collected at established sites
+
+##Target Population: 
+Every meter of total waterway length in the Sandy River Basin - including all tributataries to the Sandy River. Estimated to be 165,000 meters. 
+
+```{r}
+#Descritpion of Hypothetical Population: 
+
+set.seed(6)
+population <- declare_population(
+  stream_meters = add_level(N = 165000,
+  accessible = c(rep(0,55000), rep(1, 110000)), 
+   tot_nut = if_else(accessible == 1, rnorm(n = 165000, mean= 7, sd= 15), rnorm(n = 165000, mean= 3, sd = 4))
+))
+
+#0 = location not easily accessible from a road, 1 = location easily accessible from a road
+
+#mean and sd in mg/L, tot_nut is total nutrient concentration taking into account nitrogen and phosophorus
+
+pop <- population()
+
+
+
+my_estimand <- declare_estimands(mean(tot_nut),
+                                 label = "Ybar")
+
+plot <- ggplot(pop, aes(x=tot_nut)) + 
+  geom_histogram(color="black", fill="white")
+
+plot
+
+
+```
+
+
+##Challenges to drawing a representative sample: 
+There is a lot of heterogeneity in land use, stream volume, and stream velocity within the Sandy River Basin - and these all affect the concentration of nitrogen and phosphorus concentrations in the water. A representative sample of this measurement would include water collected from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. This is not possible since sampling all of those hypotehtical sites would not be time efficient, gaining access from private landowners might not be feasible, and analyzing a large number of water samples in the lab would be cost prohibitive. Site selection will be biased towards locations easily accessible from a road.
+
+Ease of access will bias site selection towards locations with surround land-use types more likely to introduce nitrogen and phosphorus into the stream - such as near agriculture and rangeland. Areas surrounded by pristine forest (less likely to introduce excess nutrients) will be harder to access and therefore under-represented. 
+
+```{r}
+#Description of reporting probabilities:
+
+reporting <- declare_assignment(blocks=accessible,
+                                assignment_variable = "R", #site sampled
+                                block_prob=c(0.1,0.6)) 
+
+pop <- reporting(pop)
+```
+
+
+##Sampling Procedure: 
+With two types of sites - those easily accessible from a road, and those not easily accessible - it makes the most sense to use a disproportionate strata sampling procedure. It isn't feasible to sample the less accessible sites more intensively (hence a bias in the first place), but using the strata_weighted_mean() function we can weight the strata means proportionately to the strata size of the population. 
+
+```{r}
+#Description of sampling procedure: 
+
+sampling <- declare_sampling(strata = accessible,
+                             strata_n = c(5,15))
+
+strata_weighted_mean <- function(data){
+  data.frame( 
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+ 
+  estimate = data %>% filter(R==1) %>%
+   group_by(accessible) %>% 
+  summarise(mean=mean(tot_nut)) %>%
+  mutate(prop=c(0.3,0.7)) %>%
+  mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>% 
+  sum())
+} 
+
+
+
+answer <- declare_estimator(
+ handler = tidy_estimator(strata_weighted_mean),
+ estimand = my_estimand)
+
+design <- population + my_estimand + reporting + sampling + answer
+
+diagnosis <- diagnose_design(design, sims = 200)
+
+diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
+ kable()
+```
