@@ -34,7 +34,7 @@ set.seed(6)
 population <- declare_population(
   stream_meters = add_level(N = 165000,
                             accessible = c(rep(0,55000), rep(1, 110000)), 
-  tot_nut = if_else(accessible == 1, rnorm(1, mean= 7, sd= 15), rnorm(1, mean= 3, sd = 4))
+  tot_nut = if_else(accessible == 1, rnorm(n = 165000, mean= 7, sd= 15), rnorm(n = 165000, mean= 3, sd = 4))
 ))
 
 #0 = location not easily accessible from a road, 1 = location easily accessible from a road
@@ -50,8 +50,8 @@ pop <- pop %>%
 #New mean and sd of pop: 
 mean(pop$tot_nut)
 sd(pop$tot_nut)
-#mean = 12.25
-#sd = 11.86
+#mean = 7.52
+#sd = 4.97
 
 plot <- ggplot(pop, aes(x=tot_nut)) + 
   geom_histogram(color="black", fill="white")

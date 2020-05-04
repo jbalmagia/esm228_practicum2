@@ -17,6 +17,7 @@ library(ggplot2)
 library(grid)
 library(gridExtra)
 library(dplyr)
+library(tidyverse)
 library(kableExtra)
 ```
 
@@ -67,17 +68,36 @@ Given limited staff capacity, flow rate measurements are limited in terms of num
 ## Hypothetical Population
 
 ```{r pop}
-# Hypothetical population
-set.seed(228)
+#Descritpion of Hypothetical Population: 
 
-# Create a population of 20 sites
-
+set.seed(6)
 population <- declare_population(
-  sites = add_level(N=20,
-                       donor = sample(c(rep(0,2),rep(1,8))),
-     satisfied=correlate(given = donor, rho = 0.9,
-                         draw_binary, prob = 0.5)
-))
+  stream_meters = add_level(N = 165000, # total number of meters
+                            accessible = c(rep(0,55000), rep(1, 110000)), # 0 is location isn't easily accessible from road (roughly a third); 1 is easily accessible (other two thirds)
+  flow_rate = if_else(accessible == 1, rnorm(n = 165000, mean= 600, sd = 5), rnorm(n = 165000, mean= 200, sd = 7))
+)) # associated flow; if accesible by road will likely be more downstream along the main tributary of the river and therefore have a faster flow rate.
+
+# 0 = location not easily accessible from a road, 1 = location easily accessible from a road
+
+#mean and sd in meters/second, flow_rate is flow rate at given site along river
+
+pop <- population() # run this function called population
+
+pop <- pop %>%
+mutate(flow_rate = if_else(flow_rate < 0, 0, flow_rate)) 
+#It is possible to get negative results of nutrient concentrations back from lab analysis, but negative nutrient concentrations do not actually exist. The above code assumes that any negative concentrations are an instrument error since the concentration in the sample was below the minimum detection limit of the instrument - and therefore are actually 0 mg/L concentrations.
+
+#New mean and sd of pop: 
+mean(pop$flow_rate)
+sd(pop$flow_rate)
+#mean = 12.25
+#sd = 11.86
+
+plot <- ggplot(pop, aes(x=flow_rate)) + 
+  geom_histogram(color="black", fill="white")
+
+plot
+
 
 ```
 
