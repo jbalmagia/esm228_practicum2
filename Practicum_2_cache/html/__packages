@@ -1,0 +1,17 @@
+base
+randomizr
+fabricatr
+estimatr
+DeclareDesign
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+knitr
+gridExtra
+kableExtra

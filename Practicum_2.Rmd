@@ -6,12 +6,24 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r, include = FALSE}
+# Load the required packages
+library(DeclareDesign)
+library(tidyverse)
+library(knitr)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(dplyr)
+library(kableExtra)
 ```
 
 ### Theory of Change: De-list endangered salmon and steelhead of the Lower Columbia River Basin
 
-#### Measures related to community engagement and funding:
+#### Section 1: Measures related to community engagement and funding:
 
 <br>
 
@@ -55,21 +67,415 @@ Very dissatisfied, (Somewhat) Dissatisfied, Neutral, (Somewhat) Satisfied, Very 
 
 ##### Measure 3
 
-*Measurement goal:* Test effectiveness of guided site visits in securing donations or partnerships
+*Measurement goal:* Test effectiveness of guided site visits in increasing program awareness and making good impressions on visitors.
 
-*Exact Measure:* % of site visits attended by members of organizations that donate to or partner with the Freshwater Trust in that year
+*Exact Measure:* "Please rate your experience today [with X guide] on the following (Likert) scale:"
+a. Very Satisfied
+b. Somewhat Satisfied
+c. Neutral
+d. Somewhat Dissatisfied
+e. Very Dissatisfied
+*Note: present in horizontal line to prevent order bias
 
-*Unit of measurement:* Organization represented by each individual on a site visit
+*Unit of measurement:* Individual survey respondent
 
-*Source of data:* List of visitors, list of donors, list of collaborators for each year
+*Source of data:* Each visitor will be asked to complete the survey following the guided site visit.
 
-*Rationale for choice of measure:* The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The hypothesis we are testing is whether site visits eventually lead to donations or collaboration. We can improve the specificity of this measure by incorporating visit satisfaction - does satisfaction correlate with the likelihood of a donation, or do organizations who have already decided to donate/collaborate simply send visitors as a sign of commitment? We can also incorporate the size of the donation or level of involvement to test whether more visits or high satisfaction increase engagement.
+*Rationale for choice of measure:* The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The assumption we are testing is whether site visits truly increase visitor knowledge and leave guests with a positive impression. This measure of visit satisfaction will later be correlated with actual future engagement.
 
-*Responsibility for data collection:* Data should be collected automatically as part of program management (i.e. visitors should be asked to note their affiliation). Financial manager can take responsibility for collation and analysis.
+*Responsibility for data collection:* The survey should be administered by a staff member (possibly administrator) other than the tour guide, or via email. The survey should be partially anonymous - guests should not feel uncomfortable providing honest feedback, but it will be helpful to include some identifying information that will allow other measures (which organization they represent and the $ amount of the donation or hours of work on a collaboration) to be correlated with tour satisfaction.
 
-*Frequency of data collection:* Data should be collected automatically for each individual, on each visit, as frequently as site visits occur.
+*Frequency of data collection:* Every individual should be asked to take the survey, since each could represent a different donor organization. Additionally, if there are multiple tour guides, it would be important to determine which/whose strategy is most effective.
 
-##### Sampling Strategy for Measure 3
+<br>
+
+#### Sampling Strategy for Measure 3
+
+##### Description of the target population
+
+Administrative data shows that 20 tours are led throughout the year, with 10 individuals are on each tour, for a total of 200 visitors.
+
+Organizations       Visitors               Surveys Completed
+-----------        ------------------      ------------------
+Will Donate              160                      100%
+Will Not Donate          40                       50%
+
+*Target Population*: All visitors who go on a site tour
+
+##### Declaration of Hypothetical Population
+
+```{r population}
+set.seed(228)
+
+#Minnie: Create a population of 200 visitors, of which 80% will end up donating. Then use whether or not visitors are donors to determine their level of satisfaction. This means that visitors' donor status is directly correlated to whether or not they were satisfied with the tour (the assumption we are testing).
+
+population <- declare_population(
+  visitors = add_level(N=200, donor = sample(c(rep(0,40),rep(1,160))),
+                       satisfied=correlate(given = donor, rho = 0.8, draw_binary, prob = 0.5)))
+
+#Minnie: To make satisfaction a binary condition, a survey response of "neutral" or more negative is considered "dissatisfied" and both "somewhat satisfied" and "very satisfied" are considered "satisfied".
+#Minnie:rho = 0.8 --> donor status highly correlated with being satisfied
+
+pop <- population()
+pop.vector <- c(40,160)
+
+kable(table(pop$donor,pop$satisfied)) %>% 
+  add_header_above(c("donor"=1,"satisfied"=2))
+
+my_estimand <- declare_estimands(mean(pop$satisfied),
+                                 label = "Ybar")
+#Minnie: Estimand is the mean level of satisfaction among the population
+#my_estimand(pop)
+
+```
+
+
+##### Challenges to drawing a representative sample 
+
+Some individuals may refuse to complete the survey, and this could be correlated with their level of (dis)satisfaction with the visit - this would bias the survey towards positive feedback (sampling bias).
+
+##### Declaration of Reporting Probabilities
+
+```{r reporting and sampling, echo=FALSE}
+
+reporting <- declare_assignment(blocks=donor,
+                  assignment_variable = "A", 
+                  block_prob=c(0.5,1.0))
+
+#Minnie: Donors will all complete the survey, while half of non-donors will refuse to complete it --> donors are more likely to "Answer"
+
+rep <- reporting(pop)
+table(rep$donor,rep$A)
+
+
+```
+
+##### Description of sampling procedure
+Request every visitor complete the survey at the end of their site visit.
+
+##### Declaration of sampling procedure
+
+```{r sampling and diagnosis, cache=TRUE}
+
+sampling <- declare_sampling(strata=donor,
+                             strata_n = c(9,1)) #Minnie: this appears to be the lowest possible sampling number/distribution but the bias is reduced by weighting towards non-donor surveys
+samp <- sampling(rep)
+
+strata_weighted_mean <- function(data){
+  data.frame(  
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+  
+  estimate = data %>% filter(A==1) %>%
+    group_by(donor) %>%
+    summarise(estimate=mean(satisfied)) %>%
+    mutate(prop=c(0.2,0.8)) %>%
+    mutate(sub.mean=estimate*prop) %>% pull(sub.mean) %>%
+    sum())
+}
+
+answer <- declare_estimator(
+  handler = tidy_estimator(strata_weighted_mean), estimand = my_estimand)
+
+design <- population + reporting + sampling + my_estimand + answer
+diagnosis <- diagnose_design(design, sims = 1000)
+
+diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
+  kable()
+
+```
+
+<br>
+<br>
+
+#### Section 2: Measures related to improving water quality:
+
+<br>
+
+##### Measure 4
+
+*Measurement goal:* Determine if installing fencing along the river and planting native vegetation reduces stream bank erosion.
+
+*Exact Measure:* Measure water turbidity at established sites downstream of fencing installation and vegetation restoration sites.
+
+*Unit of measurement:* Site of water sample collection
+
+*Source of data:* Turbidity will be measured  by trained field technicians, using calibrated instruments. 
+
+*Rationale for choice of measure:* Stream bank erosion causes increased turbidity in rivers, degrading the habitat quality for fish species. When cows are allowed to access the stream, the heavy use along the bank increases erosion. Invasive plant species are often herbaceous with small root systems, which do not  stabilize soil as well as more diverse native vegetation with a variety of root structures. This measure will track turbidity over time. If the sampling strategy is well designed, this will  provide information on the impact to water quality of replacing invasive vegetation with native plants and  keeping cows out of the stream.  
+
+*Responsibility for data collection:* The Freshwater trust will be responsible for hiring trained field technicians, or contracting with another organization who will provide trained field technicians to measure turbidity. 
+
+*Frequency of data collection:* Sites should be sampled once every month to get a representation of water quality in all seasons. Monthly sampling should continue for at least 3 years past planting projects have been completed since native plants will take time to fully establish and provide bank stability. 
+
+<br>
+
+##### Measure 5
+
+*Measurement goal:* Determine if fencing installation is effective at keeping cows out of the stream. 
+
+*Exact Measure:* Visual assessment of the presence of cows accessing the stream. Observation of presence and intensity of actual cows or evidence of cows (new trails, hoofprints, cow feces etc.) on the stream-side of installed fencing. 
+
+*Unit of measurement:* Fencing installation project sites and established water quality sampling sites
+
+*Source of data:* Field technicians visiting sites
+
+*Rationale for choice of measure:* Other measurements in this program are directly measuring water quality to assess if program activities have improved water quality. This measurement assesses whether the program activity is successful in its intended outcome. This way The Freshwater Trust can more effectively assess the impact of their activities. For example if water quality is not improving and  cows are being kept out of the stream, then The Freshwater Trust can look for other sources causing poor water quality and design activities to address them instead of installing more fencing. 
+
+*Responsibility for data collection:* The Freshwater trust will be responsible for hiring trained field technicians, or contracting with another organization who will provide trained field technicians. 
+
+*Frequency of data collection:* Observations should be made at project sites and water quality sites every time water samples and other water quality measures (like turbidity) are taken. This way the presence/absence of cows can be more easily related to changes in water quality. 
+
+<br>
+
+##### Measure 6
+
+*Measurement goal:* Determine if installing fencing along the river reduces in-stream nutrient concentrations.
+
+*Exact Measure:* Collect water quality samples at established sites downstream of fencing installations, and send to a lab to measure nitrogen and phosphorus concentrations.
+
+*Unit of measurement:* Site of water sample collection
+
+*Source of data:* Water samples will be collected by trained field technicians. Nutrient concentrations in those samples will be reported by a laboratory and given to The Freshwater Trust.
+
+*Rationale for choice of measure:* Excess nitrogen and phosphorus cause eutrophication in rivers, and degrade the habitat quality for fish species. When cows are allowed stream access, their excrement is a source of excess nitrogen and phosphorus. This measure will track nutrient concentration changes over time. If the sampling strategy is well designed, this will  provide information on the impact to water quality of keeping cows out of the stream.  
+
+*Responsibility for data collection:* The Freshwater trust will be responsible for hiring trained field technicians, or contracting with another organization who will provide trained field technicians to sample water. The Freshwater trust will be responsible for contracting with a laboratory and managing all data the lab reports back. 
+
+*Frequency of data collection:* Sites should be sampled once every month to get a representation of water quality in all seasons. Monthly sampling should continue for at least 1 year past when fencing installation projects have been completed to 1 full year of post-project data. 
+
+<br>
+
+#### Sampling Strategy for Measure 6
+
+##### Description of the target population
+
+*Measure:* Nitrogen and phosphorus concentrations in water samples collected at established sites
+
+Every meter of total waterway length in the Sandy River Basin - including all tributataries to the Sandy River. Estimated to be 165,000 meters. 
+
+##### Declaration of Hypothetical Population
+
+```{r}
+#Descritpion of Hypothetical Population: 
+
+set.seed(6)
+population <- declare_population(
+  stream_meters = add_level(N = 165000,
+  accessible = c(rep(0,55000), rep(1, 110000)), 
+   tot_nut = if_else(accessible == 1, rnorm(n = 165000, mean= 7, sd= 15), rnorm(n = 165000, mean= 3, sd = 4))
+))
+
+#0 = location not easily accessible from a road, 1 = location easily accessible from a road
+
+#mean and sd in mg/L, tot_nut is total nutrient concentration taking into account nitrogen and phosophorus
+
+pop <- population()
 
 
 
+my_estimand <- declare_estimands(mean(tot_nut),
+                                 label = "Ybar")
+
+plot <- ggplot(pop, aes(x=tot_nut)) + 
+  geom_histogram(color="black", fill="white")
+
+plot
+
+
+```
+
+##### Challenges to drawing a representative sample 
+There is a lot of heterogeneity in land use, stream volume, and stream velocity within the Sandy River Basin - and these all affect the concentration of nitrogen and phosphorus concentrations in the water. A representative sample of this measurement would include water collected from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. This is not possible since sampling all of those hypotehtical sites would not be time efficient, gaining access from private landowners might not be feasible, and analyzing a large number of water samples in the lab would be cost prohibitive. Site selection will be biased towards locations easily accessible from a road.
+
+Ease of access will bias site selection towards locations with surround land-use types more likely to introduce nitrogen and phosphorus into the stream - such as near agriculture and rangeland. Areas surrounded by pristine forest (less likely to introduce excess nutrients) will be harder to access and therefore under-represented. 
+
+This bias is addressed in the stratification of the population into easily accessible sites and harder to access sites, the differential sampling from these two strata (14 and 6 respectively), and weighting the sample means from these two strata differentially. 
+
+##### Declaration of Reporting Probabilities
+Reporting is not included here since it is assumed that all sites visited will have water to sample. 
+
+##### Description of sampling procedure
+With two types of sites - those easily accessible from a road, and those not easily accessible - it makes the most sense to use a disproportionate strata sampling procedure. It isn't feasible to sample the less accessible sites more intensively (hence a bias in the first place), but using the strata_weighted_mean() function we can weight the strata means proportionately to the strata size of the population. 
+
+##### Declaration of sampling procedure
+
+```{r}
+#Description of sampling procedure: 
+
+sampling <- declare_sampling(strata = accessible,
+                             strata_n = c(6,14))
+
+strata_weighted_mean <- function(data){
+  data.frame( 
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+ 
+  estimate = data %>% 
+   group_by(accessible) %>% 
+  summarise(mean=mean(tot_nut)) %>%
+  mutate(prop=c(0.3,0.7)) %>%
+  mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>% 
+  sum())
+} 
+
+
+answer <- declare_estimator(
+ handler = tidy_estimator(strata_weighted_mean),
+ estimand = my_estimand)
+
+design <- population + my_estimand + sampling + answer
+
+diagnosis <- diagnose_design(design, sims = 200) #I chose a lower number of simulations because it is sampling from a population of 165,000. Wanted to choose a number smaller than 1,000 so it ran faster, but large enough it could capture most of the variation. 
+
+diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
+ kable()
+```
+
+<br>
+<br>
+
+#### Section 3: Measures related to increasing habitat complexity:
+
+<br>
+
+##### Measure 7
+
+*Measurement goal:* Determine if log jams cool down the river temperature.
+
+*Exact Measure:* Measure water temperature at established sites downstream of log jams.
+
+*Unit of measurement:* Site of water temperature collection (degrees Celsius)
+
+*Source of data:* Water temperature will be measured  by trained field technicians, using calibrated instruments. 
+
+*Rationale for choice of measure:* The creation of log jams is assumed to decrease river temperature downstream which is beneficial to salmon and steelhead populations. This measure will track water temperature over time. If the sampling strategy is well designed, this will  provide information on the impact to water temperature of creating log jams and slowing down flow rate along the river and its tributaries. 
+
+*Responsibility for data collection:* The Freshwater trust will be responsible for hiring trained field technicians, or contracting with another organization who will provide trained field technicians to measure water temperature. 
+
+*Frequency of data collection:* Sites should be sampled once every month to get a representation of water temperature  in all seasons. Monthly sampling should continue for at least 2 years past when log jams have been created.
+
+<br>
+
+##### Measure 8
+
+*Measurement goal:* Determine if there any changes in steelhead and salmon populations in the Sandy River over time. 
+
+*Exact Measure:* Count fish traveling upstream at established sites along the river.
+
+*Unit of measurement:* Site of fish counts (number of fish counted)
+
+*Source of data:* Fish will be counted  by trained field technicians.
+
+*Rationale for choice of measure:* The goals of the project are to increase steelhead and salmon populations. By setting up fish counters during spawning season we will be able to determine change in population size from year to year. This will provide indications if the various project activities are improving population size. 
+
+*Responsibility for data collection:* The Freshwater trust will be responsible for hiring trained fish counters, or contracting with another organization who will provide trained fish counters. 
+
+*Frequency of data collection:* Fish counters will be stationed at a central point along the river for the duration of spawning season while salmon and steelhead are moving upstream. Fish counting during spawning season should continue annually for the duration of the project. 
+
+<br>
+
+##### Measure 9
+
+*Measurement goal:* Determine if log jams slow down flow rate of the river.
+
+*Exact Measure:* Measure water flow rate at established sites downstream of log jams.
+
+*Unit of measurement:* Site of water flow rate collection (meters/second)
+
+*Source of data:* Flow rate will be measured  by trained field technicians, using calibrated instruments. 
+
+*Rationale for choice of measure:* The creation of log jams is assumed to decrease river flow rate downstream by creating natural barriers that slow the flow;  this is beneficial to salmon and steelhead populations. This measure will track flow rate over time. If the sampling strategy is well designed, this will  provide information on the impact to flow rate of creating log jams along the river and its tributaries. 
+
+*Responsibility for data collection:* The Freshwater Trust will be responsible for hiring trained field technicians, or contracting with another organization who will provide trained field technicians to measure flow rate. 
+
+*Frequency of data collection:* Sites should be sampled once every month to get a representation of flow rate in all seasons. Monthly sampling should continue for at least 2 years past when log jams have been created.
+
+<br>
+
+#### Sampling Strategy for Measure 9
+
+##### Description of the target population
+
+*Measure:* Flow rate (meters/second) measurements collected at established sites
+
+Every meter of total waterway length in the Sandy River Basin - including all tributataries to the Sandy River. Estimated to be 165,000 meters. 
+
+##### Declaration of Hypothetical Population
+
+```{r pop}
+#Description of Hypothetical Population: 
+
+set.seed(6)
+population <- declare_population(
+  stream_meters = add_level(N = 165000, # total number of meters
+                            accessible = c(rep(0,70000), rep(1, 95000)), # 0 is location isn't easily accessible from road (roughly 42%); 1 is easily accessible (roughly 58%)
+  flow_rate = if_else(accessible == 1, rnorm(n = 165000, mean = 200, sd = 120), rnorm(n = 165000, mean= 600, sd = 150))
+)) # associated flow; if accesible by road will likely be in an area with less steep terrain - this means the flow rate will likely be lower in these areas as there will be less elevation change. 
+
+# 0 = location not easily accessible from a road, 1 = location easily accessible from a road
+
+#mean and sd in meters/second, flow_rate is flow rate at given site along river
+
+pop <- population()
+
+
+
+my_estimand <- declare_estimands(mean(flow_rate),
+                                 label = "Ybar")
+
+plot <- ggplot(pop, aes(x=flow_rate)) + 
+  geom_histogram(color="black", fill="white")
+
+plot
+```
+
+##### Challenges to drawing a representative sample 
+Given limited staff capacity, flow rate measurements are limited in terms of number of sites and frequency. Stream volume, natural obstacles (ie eddies), human caused obstacles (ie log jams), elevation change, etc. all vary greatly throughout the Sandy River Basin. A representative sample of this measurement would include flow rate measurements from sites encompassing the full range of possibilities and combinations of these characteristics within the basin. This would require establishing sites at all headwater tributaries in the upper basin, and establishing sites at equal length intervals down all waterways until the mouth of the Sandy River. Given that not all sites along the river are accessible and time and budget are limited it is not feasible to measure flow rate along the entirety of the river. Site selection will be biased towards locations easily accesible from a road. Areas of the river with steeper terrain are likely to be less accesible as there will be fewer roads. Steep terrain areas are difficult to construct roads on and tend to be generally less developed. The flow rate of the river in areas of steep terrain is likely to be faster as the elevation change is more dramatic causing waterfalls, cascades, etc. This means that steeper areas of the basin, with faster flow rates will be harder to access and therefore under-represented.
+
+This bias is addressed in the stratification of the population into easily accessible from a road sites and harder to access from a road sites, the differential sampling from these two strata (12 and 8 respectively), and weighting the sample means from these two strata differentially. 
+
+##### Declaration of Reporting Probabilities
+Reporting is not included here since it is assumed that all sites visited will have water to sample. 
+
+##### Description of sampling procedure
+With two types of sites - those easily accessible from a road, and those not easily accessible - it makes the most sense to use a disproportionate strata sampling procedure. It isn't feasible to sample the less accessible sites more intensively (hence a bias in the first place), but using the strata_weighted_mean() function we can weight the strata means proportionately to the strata size of the population. 
+
+##### Declaration of sampling procedure
+```{r diagnosis, cache=TRUE}
+# Sampling procedure
+
+sampling <- declare_sampling(strata = accessible,
+                             strata_n = c(8,12))
+
+strata_weighted_mean <- function(data){
+  data.frame( 
+  estimator_label = "strata_w_mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+ 
+  estimate = data %>% 
+   group_by(accessible) %>% 
+  summarise(mean=mean(flow_rate)) %>%
+  mutate(prop=c(0.4242,0.5758)) %>%
+  mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>% 
+  sum())
+} 
+
+
+answer <- declare_estimator(
+ handler = tidy_estimator(strata_weighted_mean),
+ estimand = my_estimand)
+
+design <- population + my_estimand + sampling + answer
+
+diagnosis <- diagnose_design(design, sims = 200) 
+
+diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
+ kable()
+```
