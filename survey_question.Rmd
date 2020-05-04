@@ -1,6 +1,6 @@
 ---
 title: "De-list endangered salmon and steelhead of the Lower Columbia River Basin"
-subsubtitle: "Effectiveness of guided site visits"
+subtitle: "Effectiveness of guided site visits"
 author: "Minnie"
 output: beamer_presentation
 header-includes:
@@ -27,12 +27,12 @@ library(kableExtra)
 
 **Goal**: Test effectiveness of guided site visits in increasing program awareness and making good impressions on visitors.
 
-" Please rate your experience today with X guide on the following (Likert) scale:"
+" Please rate your experience today [with X guide] on the following (Likert) scale:"
 
 a. Very Satisfied
-b. (Somewhat) Satisfied
+b. Somewhat Satisfied
 c. Neutral
-d. (Somewhat) Dissatisfied
+d. Somewhat Dissatisfied
 e. Very Dissatisfied
 
 *Note: present in horizontal line to prevent order bias
@@ -43,79 +43,64 @@ e. Very Dissatisfied
 
 *Rationale*: The site visits are provided in order to provide potential donors and collaborators with first-hand experience of the program elements and impacts. The assumption we are testing is whether site visits truly increase visitor knowledge and leave guests with a positive impression. This measure of visit satisfaction will later be correlated with actual future engagement.
 
-*Unit*: individual survey respondent
+*Unit*: Individual survey respondent
 
 
 ## Responsibility & Frequency
 
-*Responsibility*: Staff member (possibly administrator?) other than the tour guide should administer this partially anonymous survey. Guests should not feel uncomfortable providing honest feedback, but it will be helpful to include some identifying information that will allow other measures to be correlated with tour satisfaction.
+*Responsibility*: The survey should be administered by a staff member (possibly administrator) other than the tour guide, or via email. The survey should be partially anonymous - guests should not feel uncomfortable providing honest feedback, but it will be helpful to include some identifying information that will allow other measures (which organization they represent and the $ amount of the donation or hours of work on a collaboration) to be correlated with tour satisfaction.
 
 *Frequency*: Every individual should be asked to take the survey, since each could represent a different donor organization. Additionally, if there are multiple tour guides, it would be important to determine which/whose strategy is most effective. 
 
 
 ## Declaring the population
 
-Administrative data shows that 20 tours are led throughout the year, 10 individuals are on each tour, and 9/10 of individuals agree to take the survey, resulting in 180 responses each year.
+Administrative data shows that 20 tours are led throughout the year, with 10 individuals are on each tour, for a total of 200 visitors.
 
-Organizations       Visitors per tour       Surveys Completed
+Organizations       Visitors               Surveys Completed
 -----------        ------------------      ------------------
-Donor               8                       8
-Non-Donor           2                       1
+Will Donate              150                      100%
+Will Not Donate          50                       50%
 
 
 ## Target Population & Challenges
 
-*Target Population*: all [visitors who represent] potential donors or collaborators
+*Target Population*: All visitors who go on a site tour
 
-*Challenge of drawing a representative sample*: we can only survey individuals who physically visit the site. Donors already committed may send a disproportionate number of visitors to demonstrate their committment, while donors who do not visit are left out (response bias). In addition, some individuals may refuse to complete the survey, and this could be correlated with their level of (dis)satisfaction with the visit - this would bias the survey towards positive feedback (sampling bias).
+*Challenge of drawing a representative sample*: Some individuals may refuse to complete the survey, and this could be correlated with their level of (dis)satisfaction with the visit - this would bias the survey towards positive feedback (sampling bias).
 
 *Sampling procedure*: Request every visitor complete the survey at the end of their site visit.
 
 ## DeclareDesign()
 
-```{r pop}
+```{r population}
 set.seed(228)
-#Minnie: Create a population of 10 visitors, 8 are donors. Then use whether or not visitors are donors to determine their level of satisfaction??? This means that visitors' satisfaction is directly correlated to whether or not they are donors.
+
+#Minnie: Create a population of 200 visitors, of which 75% will end up donating. Then use whether or not visitors are donors to determine their level of satisfaction. This means that visitors' donor status is directly correlated to whether or not they were satisfied with the tour (the assumption we are testing).
 
 population <- declare_population(
-  visitors = add_level(N=10,
-                       donor = sample(c(rep(0,2),rep(1,8))),
-     satisfied=correlate(given = donor, rho = 0.9,
+  visitors = add_level(N=200,
+                       donor = sample(c(rep(0,50),rep(1,150))),
+     satisfied=correlate(given = donor, rho = 0.8,
                          draw_binary, prob = 0.5)
 ))
 
-#Minnie: What are draw_binary and prob doing?
-
-#Minnie: Add clustering:there are 3 tour guides
-population2 <- declare_population(
-  guide = add_level(N=3, #number of tour guides
-    w=runif(length(guide), min=-0.3, max=0.3)), #what are the min and max?
-  individual = add_level(N=10, #visitors per site visit
-    y=runif(length(individual), min=-0.3, max=0.3), #what are the min and max?
-    prob=case_when(w+y<0 ~ 0,
-                   w+y>1 ~ 1,
-                   w+y>=0 & w+y<=1 ~ w+y),
-     satisfied=draw_binary(prob = prob)))
-
-population3 <- declare_population(
-  guide = add_level(N=3,
-         baseline=c(0.7,0.8,0.9)),
-  individual = add_level(N=c(10,10,10),
-                         satisfied=draw_binary(baseline)))
-
+#Minnie: To make satisfaction a binary condition, a response of "neutral" or more negative is considered "dissatisfied" and both "satisfied" and "very satisfied" are considered "satisfied".
+#Minnie:rho = 0.8 --> donor status highly correlated with being satisfied
 
 pop <- population()
 
 kable(table(pop$donor,pop$satisfied)) %>% 
   add_header_above(c("donor"=1,"satisfied"=2))
 
-my_estimand <- declare_estimands(mean(satisfied),
+my_estimand <- declare_estimands(mean(pop$satisfied),
                                  label = "Ybar")
+#Minnie: Estimand is the mean level of knowledge among the sample.
 ```
 
 ## Declaring response bias
 
-```{r diff-reporting, echo=FALSE}
+```{r reporting, echo=FALSE}
 
 reporting <- declare_assignment(blocks=donor,
                   assignment_variable = "A", 
@@ -126,21 +111,37 @@ reporting <- declare_assignment(blocks=donor,
 #Minnie: no stratification in this example?
 
 pop <- reporting(pop)
+table(pop$donor,pop$A)
+
+sampling <- declare_sampling(n=10)
+
 ```
 
-```{r resp-tab, echo=FALSE}
-table(pop$donor,pop$A)
+```{r sampling}
+sims <- 1000 #simulations
+sam.n <- 10 #attempted sample size
+
+store <- rep(NA, sims)
+for (i in 1:sims){
+  store[i] <- mean(pop[sample(1:200,sam.n),] %>%
+                     filter(A==1) %>%
+                     pull(satisfied))
+}
+#PH: in this for-loop, we're taking a random sample of visitors, subsetting out those that are "non-reporters" (A==0) and then taking the mean of their satisfaction. We do this "sims" number of times (1000).
+
+summary(store)
 ```
+
 
 ## DeclareDesign()
 
 ```{r diagnosis, cache=TRUE}
 
-answer <- declare_estimator(
-  handler = tidy_estimator(strata_weighted_mean), #PH: this is the custom function we wrote in the chunk above.
-  estimand = my_estimand) #PH: 'my_estimand' is the true population mean of knowledge. We happen to know this in this case (b/c we faked the data), but you'll have to make an educated guess about what this is in practice. Often, you see people designing M&E programs cite research to take a stab at the actual value of the estimand.
+#answer <- declare_estimator(
+ # handler = tidy_estimator(strata_weighted_mean), #PH: this is the custom function we wrote in the chunk above.
+  #estimand = my_estimand) #PH: 'my_estimand' is the true population mean of knowledge. We happen to know this in this case (b/c we faked the data), but you'll have to make an educated guess about what this is in practice. Often, you see people designing M&E programs cite research to take a stab at the actual value of the estimand.
 
-design <- population + my_estimand + reporting
+design <- population + reporting + sampling + my_estimand
 diagnosis <- diagnose_design(design, sims = 1000)
 
 diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
