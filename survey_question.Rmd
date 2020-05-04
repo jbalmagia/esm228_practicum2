@@ -118,18 +118,26 @@ sampling <- declare_sampling(n=10)
 ```
 
 ```{r sampling}
-sims <- 1000 #simulations
-sam.n <- 10 #attempted sample size
 
+sims <- 1000 #simulations
+sample_n <- 10 #attempted sample size
 store <- rep(NA, sims)
+
 for (i in 1:sims){
-  store[i] <- mean(pop[sample(1:200,sam.n),] %>%
-                     filter(A==1) %>%
-                     pull(satisfied))
+  index <- sample(1:200,sample_n) #drawn sample
+  pop <- reporting(pop)
+  donate <- mean(pop[index,] %>%
+               filter(A==1 & donor==1) %>%
+               pull(satisfied))
+  nodonate <- mean(pop[index,] %>%
+               filter(A==1 & donor==0) %>%
+               pull(satisfied))
+  store[i] <- donate * 0.5 + nodonate * 0.5
 }
-#PH: in this for-loop, we're taking a random sample of visitors, subsetting out those that are "non-reporters" (A==0) and then taking the mean of their satisfaction. We do this "sims" number of times (1000).
 
 summary(store)
+prop.se.store <- sd(store, na.rm = TRUE)
+
 ```
 
 
@@ -137,11 +145,28 @@ summary(store)
 
 ```{r diagnosis, cache=TRUE}
 
-#answer <- declare_estimator(
- # handler = tidy_estimator(strata_weighted_mean), #PH: this is the custom function we wrote in the chunk above.
-  #estimand = my_estimand) #PH: 'my_estimand' is the true population mean of knowledge. We happen to know this in this case (b/c we faked the data), but you'll have to make an educated guess about what this is in practice. Often, you see people designing M&E programs cite research to take a stab at the actual value of the estimand.
+donor_mean <- function(data){
+  data.frame(  
+  estimator_label = "mean",
+  estimand_label = "Ybar",
+  n = nrow(data),
+  stringsAsFactors = FALSE,
+  
+  estimate = data %>% filter(A==1) %>% #PH: subset out units that are not sampled.
+   # group_by(port) %>% 
+    summarise(mean=mean(donor, na.rm = TRUE))) #%>%
+  #  mutate(prop=pop.vector/sum(pop.vector)) %>% #PH: 'prop' is a variable calculating the proportion of units in the population that are at a given port.
+  #  mutate(sub.mean=mean*prop) %>% pull(sub.mean) %>%  #PH: 'sub.mean' is a weighted average of the knowledge level within a given port.
+  #  sum()) #PH: sums all the weighed averages of knowledge within ports to get a weighted sample mean.
+} #just use this function, custom
 
-design <- population + reporting + sampling + my_estimand
+#PH: here, we're declaring a second estimator that will estimate the population mean by calculating a strata weighted mean of the sample
+
+answer <- declare_estimator(
+ handler = tidy_estimator(donor_mean), #PH: this is the custom function we wrote in the chunk above.
+  estimand = my_estimand) #PH: 'my_estimand' is the true population mean of knowledge. We happen to know this in this case (b/c we faked the data), but you'll have to make an educated guess about what this is in practice. Often, you see people designing M&E programs cite research to take a stab at the actual value of the estimand.
+
+design <- population + reporting + sampling + my_estimand + answer
 diagnosis <- diagnose_design(design, sims = 1000)
 
 diagnosis$diagnosands_df[,c(4,5,12,14)] %>%
